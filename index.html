@@ -19,7 +19,7 @@
       }
 
       /* Canvas container */
-      #game-container {   
+      #game-container {
         max-width: 800px;
         margin: 50px auto 40px;
         position: relative;
@@ -160,9 +160,10 @@
 
         const imgObstacles = [imgConstruction, imgTraffic];
 
-        const bgMusic = new Audio("assets/music.mp3");
+        const bgMusic = new Audio("assets/SuperMarioBros.mp3");
         bgMusic.loop = true;
         bgMusic.volume = 0.5;
+        bgMusic.preload = "auto";
 
         // Canvas and context
         const canvas = document.getElementById("gameCanvas");
@@ -422,7 +423,7 @@
           messageElem.style.pointerEvents = "auto";
           messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
         }
-  
+
         function resetGame() {
           gameOver = false;
           gameWon = false;
