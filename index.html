@@ -19,7 +19,7 @@
       }
 
       /* Canvas container */
-      #game-container {
+      #game-container {   
         max-width: 800px;
         margin: 50px auto 40px;
         position: relative;
@@ -160,8 +160,9 @@
 
         const imgObstacles = [imgConstruction, imgTraffic];
 
-        // const imgFloor = new Image();
-        // imgFloor.src = "assets/Brick.svg";
+        const bgMusic = new Audio("assets/music.mp3");
+        bgMusic.loop = true;
+        bgMusic.volume = 0.5;
 
         // Canvas and context
         const canvas = document.getElementById("gameCanvas");
@@ -392,9 +393,9 @@
             return;
           }
 
-        //   if (speed < maxSpeed) {
-        //     speed += speedIncrement;
-        //   }
+          //   if (speed < maxSpeed) {
+          //     speed += speedIncrement;
+          //   }
 
           requestAnimationFrame(gameLoop);
         }
@@ -402,6 +403,12 @@
         function startGame() {
           if (!gameStarted) {
             gameStarted = true;
+            bgMusic.play().catch((err) => {
+              console.log(
+                "Autoplay blocked, will play on first user interaction:",
+                err
+              );
+            });
             messageElem.textContent = ""; // clear start message
             requestAnimationFrame(gameLoop);
           }
@@ -410,10 +417,12 @@
         function endGame(won) {
           gameOver = true;
           gameWon = won;
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
           messageElem.style.pointerEvents = "auto";
           messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
         }
-
+  
         function resetGame() {
           gameOver = false;
           gameWon = false;
@@ -487,4 +496,3 @@
     </script>
   </body>
 </html>
- 
