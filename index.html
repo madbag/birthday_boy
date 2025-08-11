@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.png" />
+    <title>Happy Birthday A</title>
+    <style>
+      /* Chrome offline style */
+      body {
+        margin: 0;
+        background: #f7f7f7;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: #4d4d4d;
+        user-select: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Canvas container */
+      #game-container {
+        max-width: 800px;
+        margin: 50px auto 40px;
+        position: relative;
+        touch-action: manipulation;
+      }
+
+      canvas {
+        background: #fff;
+        border: 1px solid #ccc;
+        display: block;
+        margin: 0 auto;
+        width: 100%;
+        height: auto;
+      }
+
+      /* Score display */
+      #scoreboard {
+        max-width: 800px;
+        margin: 10px auto 0;
+        font-weight: 700;
+        font-size: 18px;
+        display: flex;
+        justify-content: space-between;
+        /* padding: 0 10px; */
+        color: #555;
+        user-select: none;
+        gap: 5rem;
+      }
+
+      /* Win/Game Over message */
+      #message {
+        position: absolute;
+        top: 120px;
+        width: 100%;
+        text-align: center;
+        font-weight: 700;
+        font-size: 28px;
+        color: #333;
+        user-select: none;
+        pointer-events: none;
+      }
+
+      /* Error Message */
+      #offline-msg {
+        padding: 20px;
+        max-width: 600px;
+        line-height: 1.4;
+        margin: 20px auto;
+      }
+
+      #offline-msg h2 {
+        font-weight: 700;
+        font-size: 30px;
+        margin-bottom: 0.2em;
+      }
+
+      #offline-msg p.try-text {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 0.6em;
+      }
+
+      #offline-msg ul {
+        margin-top: 0;
+        padding-left: 1.2em;
+      }
+
+      #offline-msg ul li {
+        margin-bottom: 0.4em;
+      }
+
+      #offline-msg .error-code {
+        font-weight: 700;
+        margin-top: 1em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="game-container">
+      <canvas
+        id="gameCanvas"
+        width="800"
+        height="300"
+        aria-label="Ahmad's Running Game"
+      ></canvas>
+      <div id="message"></div>
+    </div>
+
+    <div id="scoreboard">
+      <div>Score: <span id="score">0</span></div>
+      <div>High Score: <span id="highScore">0</span></div>
+    </div>
+
+    <div id="offline-msg">
+      <h2>Happy Birthday Ahmad</h2>
+      <p class="try-text">Try:</p>
+      <ul>
+        <li>
+          Navigate through traffic jams without losing your cool (or your
+          sanity)
+        </li>
+        <li>
+          Outsmart construction barricades like a true champion of the road
+        </li>
+        <li>
+          Make it to the finish line to meet the special someone waiting for you
+        </li>
+      </ul>
+      <p class="error-code">ERR_MISSION_LOVE_IN_PROGRESS</p>
+    </div>
+
+    <script>
+      (() => {
+        // Config
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 300;
+        const JUMP_POINTS = 50;
+        const OBSTACLE_MIN_GAP = 250;
+        const OBSTACLE_MAX_GAP = 500;
+
+        // Load SVG Images
+        const imgDino = new Image();
+        imgDino.src = "assets/Ahmad.svg";
+
+        const imgGoalDino = new Image();
+        imgGoalDino.src = "assets/Martha_heart.svg";
+
+        const imgCloud = new Image();
+        imgCloud.src = "assets/Cloud.svg";
+
+        // Load obstacle images
+        const imgConstruction = new Image();
+        imgConstruction.src = "assets/Construction.svg";
+
+        const imgTraffic = new Image();
+        imgTraffic.src = "assets/Traffic.svg";
+
+        const imgObstacles = [imgConstruction, imgTraffic];
+
+        const imgFloor = new Image();
+        imgFloor.src = "assets/Brick.svg";
+
+        // Canvas and context
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // UI elements
+        const scoreElem = document.getElementById("score");
+        const highScoreElem = document.getElementById("highScore");
+        const messageElem = document.getElementById("message");
+
+        // Game state
+        // let groundX = 0;
+        let speed = 6;
+        let maxSpeed = 25;
+        let speedIncrement = 0.001;
+        let score = 0;
+        let highScore = 0;
+        let jumpsUsed = 0;
+        let hitboxesVisible = false;
+        let gameOver = false;
+        let gameWon = false;
+        let gameStarted = false;
+        let floorX = 0;
+
+        // New variable to hold the jump count at which the goal dino starts moving
+        let goalAppearJump = null;
+
+        // Responsive scaling
+        function resizeCanvas() {
+          const container = document.getElementById("game-container");
+          const containerWidth = container.clientWidth;
+          canvas.style.width = containerWidth + "px";
+          canvas.style.height =
+            (containerWidth / CANVAS_WIDTH) * CANVAS_HEIGHT + "px";
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Dino object
+        const dino = {
+          x: 50,
+          y: CANVAS_HEIGHT - 80,
+          width: 55,
+          height: 70,
+          vy: 0,
+          gravity: 1.2,
+          jumpForce: 18,
+          jumping: false,
+
+          jump() {
+            if (!this.jumping && !gameOver && !gameWon) {
+              this.vy = -this.jumpForce;
+              this.jumping = true;
+              jumpsUsed++;
+              score += JUMP_POINTS;
+              updateScore();
+            }
+          },
+
+          update() {
+            this.vy += this.gravity;
+            this.y += this.vy;
+            if (this.y >= CANVAS_HEIGHT - this.height - 10) {
+              this.y = CANVAS_HEIGHT - this.height - 10;
+              this.vy = 0;
+              this.jumping = false;
+            }
+          },
+
+          draw() {
+            ctx.drawImage(imgDino, this.x, this.y, this.width, this.height);
+            if (hitboxesVisible) {
+              ctx.strokeStyle = "red";
+              ctx.strokeRect(this.x, this.y, this.width, this.height);
+            }
+          },
+
+          getBounds() {
+            return {
+              x: this.x,
+              y: this.y,
+              width: this.width,
+              height: this.height,
+            };
+          },
+        };
+
+        // Goal Dino object
+        const goalDino = {
+          x: 50,
+          y: CANVAS_HEIGHT - 80,
+          width: 55,
+          height: 70,
+          draw() {
+            ctx.drawImage(imgGoalDino, this.x, this.y, this.width, this.height);
+            if (hitboxesVisible) {
+              ctx.strokeStyle = "green";
+              ctx.strokeRect(this.x, this.y, this.width, this.height);
+            }
+          },
+
+          getBounds() {
+            return {
+              x: this.x,
+              y: this.y,
+              width: this.width,
+              height: this.height,
+            };
+          },
+        };
+
+        // Clouds
+        const clouds = [];
+        function createCloud() {
+          return {
+            x: CANVAS_WIDTH + Math.random() * 200,
+            y: 20 + Math.random() * 40,
+            width: 46,
+            height: 14,
+            speed: speed * 0.3,
+            draw() {
+              ctx.drawImage(imgCloud, this.x, this.y, this.width, this.height);
+            },
+            update() {
+              this.x -= this.speed;
+              if (this.x < -this.width) {
+                this.x = CANVAS_WIDTH + Math.random() * 200;
+                this.y = 20 + Math.random() * 40;
+              }
+            },
+          };
+        }
+        for (let i = 0; i < 3; i++) clouds.push(createCloud());
+
+        function isCircleColliding(c1, r1, c2, r2) {
+          const dx = c1.x - c2.x;
+          const dy = c1.y - c2.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          return distance < r1 + r2;
+        }
+
+        // Obstacles
+        let obstacles = [];
+
+        function createObstacle(prevX = CANVAS_WIDTH) {
+          const idx = Math.floor(Math.random() * imgObstacles.length);
+          const img = imgObstacles[idx];
+          const width = 30;
+          const height = 50;
+          const x =
+            prevX +
+            OBSTACLE_MIN_GAP +
+            Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
+          return { x, y: CANVAS_HEIGHT - height - 10, width, height, img };
+        }
+
+        function initObstacles() {
+          obstacles = [];
+          let lastX = CANVAS_WIDTH;
+          const goalJumpIndex = 26 + Math.floor(Math.random() * (39 - 26 + 1));
+
+          for (let i = 0; i < goalJumpIndex; i++) {
+            let ob = createObstacle(lastX);
+            lastX = ob.x + ob.width;
+            obstacles.push(ob);
+          }
+          goalDino.x = lastX + 400;
+        }
+
+        function updateScore() {
+          scoreElem.textContent = Math.floor(score);
+          if (score > highScore) {
+            highScore = Math.floor(score);
+            highScoreElem.textContent = highScore;
+          }
+        }
+
+        function rectsOverlap(r1, r2) {
+          return !(
+            r1.x + r1.width < r2.x ||
+            r1.x > r2.x + r2.width ||
+            r1.y + r1.height < r2.y ||
+            r1.y > r2.y + r2.height
+          );
+        }
+
+        function gameLoop() {
+          const floorHeight = imgFloor.height;
+          const floorWidth = imgFloor.width;
+
+          if (gameOver || gameWon) return;
+
+          ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+          //   groundX -= speed;
+          floorX -= speed;
+
+          if (floorX <= -floorWidth) {
+            floorX += floorWidth;
+          }
+
+          for (let x = floorX; x < CANVAS_WIDTH; x += floorWidth) {
+            ctx.drawImage(imgFloor, x, CANVAS_HEIGHT - floorHeight);
+          }
+          //   }
+          //   if (groundX <= -CANVAS_WIDTH) groundX = 0;
+          // ctx.fillStyle = "#666";
+          ctx.fillRect(0, CANVAS_HEIGHT - 10, CANVAS_WIDTH, 10);
+          clouds.forEach((cloud) => {
+            cloud.speed = speed * 0.3;
+            cloud.update();
+            cloud.draw();
+          });
+
+          for (let ob of obstacles) {
+            ob.x -= speed;
+            ctx.drawImage(ob.img, ob.x, ob.y, ob.width, ob.height);
+            if (hitboxesVisible) {
+              ctx.strokeStyle = "blue";
+              ctx.strokeRect(ob.x, ob.y, ob.width, ob.height);
+            }
+          }
+          obstacles = obstacles.filter((ob) => ob.x + ob.width > -50);
+          goalDino.x -= speed;
+          goalDino.draw();
+          dino.update();
+          dino.draw();
+          score += speed * 0.1;
+          updateScore();
+
+          const dinoBounds = dino.getBounds();
+          for (let ob of obstacles) {
+            if (rectsOverlap(dinoBounds, ob)) {
+              endGame(false);
+              return;
+            }
+          }
+
+          if (rectsOverlap(dinoBounds, goalDino.getBounds())) {
+            endGame(true);
+            return;
+          }
+
+          if (speed < maxSpeed) {
+            speed += speedIncrement;
+          }
+
+          requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+          if (!gameStarted) {
+            gameStarted = true;
+            messageElem.textContent = ""; // clear start message
+            requestAnimationFrame(gameLoop);
+          }
+        }
+
+        function endGame(won) {
+          gameOver = true;
+          gameWon = won;
+          messageElem.style.pointerEvents = "auto";
+          messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
+        }
+
+        function resetGame() {
+          gameOver = false;
+          gameWon = false;
+          score = 0;
+          jumpsUsed = 0;
+          speed = 6;
+          floorX = 0;
+          updateScore();
+
+          initObstacles();
+          goalAppearJump = null;
+          gameStarted = false; // wait for spacebar again
+          messageElem.textContent = "Press Space to Start"; // show start message
+        }
+
+        function onKeyDown(e) {
+          if (e.code === "Space" || e.code === "ArrowUp") {
+            e.preventDefault();
+
+            if (!gameStarted && !gameOver) {
+              // Start game for the first time
+              startGame();
+            } else if (gameOver) {
+              // Restart game after Game Over
+              resetGame();
+              startGame();
+            } else {
+              // Jump during gameplay
+              dino.jump();
+            }
+          }
+        }
+
+        function onTouchStart(e) {
+          e.preventDefault();
+
+          if (!gameStarted && !gameOver) {
+            startGame();
+          } else if (gameOver) {
+            resetGame();
+          } else {
+            dino.jump();
+          }
+        }
+
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("touchstart", onTouchStart);
+
+        // Wait for all images to load before starting
+        const allImages = [
+          imgDino,
+          imgGoalDino,
+          imgCloud,
+          ...imgObstacles,
+          imgFloor,
+        ];
+
+        Promise.all(
+          allImages.map(
+            (img) =>
+              new Promise((resolve) => {
+                if (img.complete) {
+                  resolve();
+                } else {
+                  img.onload = resolve;
+                  img.onerror = () => {
+                    console.error("Failed to load image:", img.src);
+                    resolve(); // still resolve so Promise.all continues
+                  };
+                }
+              })
+          )
+        ).then(() => {
+          resetGame();
+        });
+      })();
+    </script>
+  </body>
+</html>
