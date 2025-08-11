@@ -321,7 +321,8 @@
         function initObstacles() {
           obstacles = [];
           let lastX = CANVAS_WIDTH;
-          const goalJumpIndex = 26 + Math.floor(Math.random() * (39 - 26 + 1));
+          const goalJumpIndex = 10 
+        //    + Math.floor(Math.random() * (39 - 26 + 1));
 
           for (let i = 0; i < goalJumpIndex; i++) {
             let ob = createObstacle(lastX);
