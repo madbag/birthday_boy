@@ -21,7 +21,7 @@
       /* Canvas container */
       #game-container {
         max-width: 800px;
-        margin: 50px auto 40px;
+        margin: 30px auto 40px;
         position: relative;
         touch-action: manipulation;
       }
@@ -170,6 +170,11 @@
         bgEndMusic.volume = 1.0;
         bgEndMusic.preload = "auto";
 
+        const victoryMusic = new Audio("assets/Stage Win (Super Mario).mp3");
+        victoryMusic.loop = false; // Plays once
+        victoryMusic.volume = 0.7;
+        victoryMusic.preload = "auto";
+
         // Canvas and context
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -189,7 +194,6 @@
         let gameOver = false;
         let gameWon = false;
         let gameStarted = false;
-        // let floorX = 0;
 
         // New variable to hold the jump count at which the goal dino starts moving
         let goalAppearJump = null;
@@ -326,7 +330,7 @@
         function initObstacles() {
           obstacles = [];
           let lastX = CANVAS_WIDTH;
-          const goalJumpIndex = 15;
+          const goalJumpIndex = 3;
           //    + Math.floor(Math.random() * (39 - 26 + 1));
 
           for (let i = 0; i < goalJumpIndex; i++) {
@@ -417,17 +421,30 @@
         function endGame(won) {
           gameOver = true;
           gameWon = won;
+
           bgMusic.pause();
           bgMusic.currentTime = 0;
-          bgEndMusic.currenTime = 0;
-          bgEndMusic
-            .play()
-            .catch((err) => console.log("End music blocked:", err));
+
+          if (won) {
+            victoryMusic.currentTime = 0;
+            victoryMusic
+              .play()
+              .catch((err) => console.log("Victory music blocked:", err));
+          } else {
+            bgEndMusic.currentTime = 0;
+            bgEndMusic
+              .play()
+              .catch((err) => console.log("End music blocked:", err));
+          }
+
           messageElem.style.pointerEvents = "auto";
           messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
         }
 
         function resetGame() {
+          bgEndMusic.pause();
+          bgEndMusic.currentTime = 0;
+          
           gameOver = false;
           gameWon = false;
           score = 0;
