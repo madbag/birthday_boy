@@ -129,7 +129,7 @@
           Make it to the finish line to meet the special someone waiting for you
         </li>
       </ul>
-      <p class="error-code">ERR_MISSION_LOVE_IN_PROGRESS</p>
+      <p class="error-code">ERR_MISSION_LOVE_IN_PROGRESS_HEHE</p>
     </div>
 
     <script>
@@ -165,6 +165,11 @@
         bgMusic.volume = 0.5;
         bgMusic.preload = "auto";
 
+        const bgEndMusic = new Audio("assets/SuperMarioEnd.mp3");
+        bgEndMusic.loop = false;
+        bgEndMusic.volume = 1.0;
+        bgEndMusic.preload = "auto";
+
         // Canvas and context
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -176,9 +181,7 @@
 
         // Game state
         let groundX = 0;
-        let speed = 3; // slower start
-        let maxSpeed = 10; // slower max speed
-        let speedIncrement = 0.0005; // slower acceleration
+        let speed = 3;
         let score = 0;
         let highScore = 0;
         let jumpsUsed = 0;
@@ -378,7 +381,7 @@
           goalDino.draw();
           dino.update();
           dino.draw();
-          score += speed * 0.1;
+          score += speed;
           updateScore();
 
           const dinoBounds = dino.getBounds();
@@ -393,10 +396,6 @@
             endGame(true);
             return;
           }
-
-          //   if (speed < maxSpeed) {
-          //     speed += speedIncrement;
-          //   }
 
           requestAnimationFrame(gameLoop);
         }
@@ -420,6 +419,10 @@
           gameWon = won;
           bgMusic.pause();
           bgMusic.currentTime = 0;
+          bgEndMusic.currenTime = 0;
+          bgEndMusic
+            .play()
+            .catch((err) => console.log("End music blocked:", err));
           messageElem.style.pointerEvents = "auto";
           messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
         }
