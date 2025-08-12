@@ -58,8 +58,22 @@
         font-weight: 700;
         font-size: 28px;
         color: #333;
-        user-select: none;
+        /* user-select: none; */
         pointer-events: none;
+      }
+
+      @media (max-width: 768px) {
+        #message {
+          top: 60px; /* Moves the message higher on smaller screens */
+          font-size: 22px; /* Optional: slightly smaller font */
+        }
+      }
+
+      @media (max-width: 400px) {
+        #message {
+          top: 40px; /* Even higher on very small screens */
+          font-size: 18px; /* Smaller font */
+        }
       }
 
       /* Error Message */
@@ -330,7 +344,7 @@
         function initObstacles() {
           obstacles = [];
           let lastX = CANVAS_WIDTH;
-          const goalJumpIndex = 3;
+          const goalJumpIndex = 15;
           //    + Math.floor(Math.random() * (39 - 26 + 1));
 
           for (let i = 0; i < goalJumpIndex; i++) {
@@ -441,6 +455,14 @@
           messageElem.textContent = won ? "You Win! 🎉" : "Game Over";
         }
 
+        function updateStartMessage() {
+          if (window.innerWidth <= 768) {
+            messageElem.textContent = "Tap to Start";
+          } else {
+            messageElem.textContent = "Press Space to Start";
+          }
+        }
+
         function resetGame() {
           bgEndMusic.pause();
           bgEndMusic.currentTime = 0;
@@ -456,7 +478,8 @@
           initObstacles();
           goalAppearJump = null;
           gameStarted = false; // wait for spacebar again
-          messageElem.textContent = "Press Space to Start"; // show start message
+          // messageElem.textContent = "Press Space to Start"; // show start message
+          updateStartMessage();
         }
 
         function onKeyDown(e) {
@@ -491,6 +514,11 @@
 
         window.addEventListener("keydown", onKeyDown);
         window.addEventListener("touchstart", onTouchStart);
+        window.addEventListener("resize", () => {
+          if (!gameStarted && !gameOver) {
+            updateStartMessage();
+          }
+        });
 
         // Wait for all images to load before starting
         const allImages = [imgDino, imgGoalDino, imgCloud, ...imgObstacles];
