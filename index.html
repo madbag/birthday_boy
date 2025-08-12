@@ -261,9 +261,9 @@
         // Goal Dino object
         const goalDino = {
           x: 50,
-          y: CANVAS_HEIGHT - 80,
+          y: CANVAS_HEIGHT - 80 - 15,
           width: 55,
-          height: 70,
+          height: 85,
           draw() {
             ctx.drawImage(imgGoalDino, this.x, this.y, this.width, this.height);
             if (hitboxesVisible) {
@@ -444,7 +444,7 @@
         function resetGame() {
           bgEndMusic.pause();
           bgEndMusic.currentTime = 0;
-          
+
           gameOver = false;
           gameWon = false;
           score = 0;
